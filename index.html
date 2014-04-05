@@ -1,0 +1,280 @@
+<html>
+<head>
+<title>Pizza Box by Ian Nightingale</title>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<style>
+canvas{
+	margin: auto;
+	border-style: solid;
+	border-width: 2px;
+}
+body{
+	text-align: center;
+}
+
+#player{
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+	<img src="heads.png" style="display: none"/>
+	<img src="tails.png" style="display: none"/>
+	<h1>Pizza Box</h1>
+	<canvas height="500px" width="500px"></canvas>
+	<br>
+	<div>
+		<div id="status">
+			Current Player: <span id = "player"></span>
+			<br><br>
+			Next Player: <span id = "next_player"></span> <button>Flip</button>
+		</div>
+		<div id = "rule" style="display: none">
+			Rule #<span id="rule_no"></span>:
+			<p id="rule_text"></p>
+		</div>
+	</div>
+</body>
+<script>
+
+// current player index
+var player = 0;
+
+// holds the player
+var players = new Array();
+
+// holds the rules
+var rules = new Array();
+
+// which rule number we're on
+var rule_number = 1;
+
+var canvas;
+
+// radius of the quarter/rules
+var radius;
+
+// how big our pizza is
+var inches;
+
+// how many pixels per inch
+var ppi;
+
+// don't want to flip in the beginning
+var flipping = true;
+
+// how large our circles are
+var lineWidth = 3;
+
+// how large our numbers are
+var fontSize = 1;
+
+// setup
+$(document).ready(function(){
+
+	var i = 0;
+	
+	while(1){
+		var message = "Please enter the name of Player " + (i + 1) + ": ";
+		
+		if(i > 1){
+			message = "(Optional) " + message;
+		}
+		
+		var name = prompt(message);
+
+		if(!name){
+			if(i < 2){
+				alert("You need > 2 players!");
+				continue;
+			}
+			else{
+				break;
+			}
+		}
+		
+		players.push(name.toUpperCase());
+		
+		i++;
+	}
+	// Get inches
+	do{
+		inches = prompt("Please enter the pizza size ( >= 8 inches)");
+	
+		if( inches == null)
+			continue;
+
+	  	inches = parseInt(inches);
+	
+	}while(isNaN(inches) || inches < 8);
+
+	canvas = $("canvas")[0];
+
+	context = canvas.getContext("2d");
+
+	// set the font
+	context.font = fontSize + "em Arial";
+
+	var centerX = canvas.width / 2;
+	var centerY = canvas.height / 2;
+	
+	ppi = (canvas.width / inches)
+	
+	radius = ppi / 2.;
+	
+	// set onclick for button
+	$("button").click(flip);
+	
+	// next player
+	$("#next_player").html(players[0]);
+	
+	// now we can flip
+	flipping = false;
+});
+
+// handler for keydown
+function keyPressed(e) {
+	if(e.keyCode == 13){
+		$("button").click();
+	}
+}
+
+function drawQuarter(x, y){
+
+    var img = $("img")[Math.floor(Math.random() * 2)];
+
+	context.save()
+    context.drawImage(img, x - radius, y - radius, 2 * radius, 2 * radius);
+	context.restore();
+	
+}
+
+function drawRule(){
+		
+	context.beginPath();
+	
+	context.arc(this.x, this.y, radius, 0, 2 * Math.PI, false);
+	context.lineWidth = lineWidth;
+	context.strokeStyle = 'black';
+	context.stroke();
+	context.fillText(this.number, this.x - radius / 4., 
+		this.y + radius / 4.);
+}
+
+function newRule(name, x, y){
+	var rule = {};
+	rule.number = rule_number;
+	// get the text from the user
+	var text;
+	do{
+		text = prompt(name + ", enter a new rule (" + rule_number + "):");
+	}while(text == null || text.length == 0);
+	// increment rule
+	rule_number++;
+	
+	rule.draw = drawRule;
+	rule.x = x;
+	rule.y = y;
+	
+	rule.text = text;
+	
+	// add to global array of rules
+	rules.push(rule);
+	
+	return rule;	
+}
+
+function distance(x1, y1, x2, y2){
+	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
+
+function flip(){
+	
+	if(flipping)
+		return;
+		
+	flipping = true;
+	
+
+	$("#rule").css("display", "none");
+
+	draw();
+	
+	var x = Math.floor(Math.random() * canvas.width);
+	var y = Math.floor(Math.random() * canvas.height);
+	
+	var name = $("#next_player").html();
+	
+	$("#player").html(name);
+	
+	// get the next player
+	player = (++player) % players.length;
+	
+	$("#next_player").html(players[player]);
+	
+	drawQuarter(x, y);
+	
+	var rule = null;
+	var min_dist = Number.MAX_VALUE;
+	
+	for (var i in rules){
+		var current = rules[i];
+		if(collision(x, y, current.x, current.y)){
+			var dist = distance(x, y, current.x, current.y);
+			if(dist < min_dist){
+				rule = current;
+				min_dist = dist;
+			}	
+		}
+	}
+	
+	if(rule){
+		alert(name + " landed on Rule " + rule.number + ": " + rule.text);
+			
+	}else{
+		rule = newRule(name, x, y);	
+	}
+	
+	flipping = false;
+}
+
+function draw(){
+	
+	context.globalAlpha = 1;
+	
+	// Store the current transformation matrix
+	context.save();
+
+	// Use the identity matrix while clearing the canvas
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	context.clearRect(0, 0, canvas.width, canvas.height);
+
+	// Restore the transform
+	context.restore()
+	
+	// draw every player
+	$.each(Object.keys(rules), function(){
+		rules[this].draw();
+	});
+	
+}
+
+function collision(x1,y1,x2,y2)
+{
+    //compare the distance to combined radii
+    dx = x2 - x1;
+    dy = y2 - y1;
+    radii = 2 * radius;
+    if ( ( dx * dx )  + ( dy * dy ) < radii * radii ) 
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+</script>
+
+</html>
