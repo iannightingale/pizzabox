@@ -119,6 +119,9 @@ var lineWidth = 3;
 // how large our numbers are
 var fontSize = 1;
 
+// min pizza size
+var min_pizza_size = 4;
+
 // setup
 $(document).ready(function(){
 
@@ -149,14 +152,15 @@ $(document).ready(function(){
 	}
 	// Get inches
 	do{
-		inches = prompt("Please enter the pizza size ( >= 8 inches)");
+		inches = prompt("Please enter the pizza size ( >= " + 
+			min_pizza_size + " inches)");
 	
 		if( inches == null)
 			continue;
 
 	  	inches = parseInt(inches);
 	
-	}while(isNaN(inches) || inches < 8);
+	}while(isNaN(inches) || inches < min_pizza_size);
 
 	canvas = $("canvas")[0];
 
@@ -238,6 +242,10 @@ function distance(x1, y1, x2, y2){
 	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
 
+function randCoord(){
+	return Math.floor(Math.random() * (canvas.width - 2 * radius)) + radius;
+}
+
 function flip(){
 	
 	if(flipping)
@@ -250,8 +258,8 @@ function flip(){
 
 	draw();
 	
-	var x = Math.floor(Math.random() * canvas.width);
-	var y = Math.floor(Math.random() * canvas.height);
+	var x = randCoord();
+	var y = randCoord();
 	
 	var name = $("#next_player").html();
 	
